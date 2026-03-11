@@ -60,21 +60,37 @@ receiver = phased.ReceiverPreamp('SampleRate', fs, 'NoiseFigure', 30);
 %% Target
 
 % Stationary targets 
-targetpos= [900,0,0;1000,-30,0]';
-targetvel = [0,0,0;0,0,0]';
+targetpos= [900,0,0;1000,-30,0; 850, -15, 0]';
+targetvel = [0,0,0;0,0,0; 0,0,0]';
 
 squintangle = atand(600/950);
 
 % Target object applies amplitude scaling and phase shift to reflected signal 
-target = phased.RadarTarget('OperatingFrequency', fc, 'MeanRCS', [1,1]);
+target = phased.RadarTarget('OperatingFrequency', fc, 'MeanRCS', [1,1,1]);
 pointTargets = phased.Platform('InitialPosition', targetpos,'Velocity',targetvel);
 
 % Ground truth plot
 
-figure(1);
-h = axes;plot(targetpos(2,1),targetpos(1,1),'*b');hold on;plot(targetpos(2,2),targetpos(1,2),'*r');hold off;
-set(h,'Ydir','reverse');xlim([-50 10]);ylim([800 1200]);
-title('Ground Truth');ylabel('Range');xlabel('Cross-Range');
+% figure(1)
+% h = axes;plot(targetpos(2,1),targetpos(1,1),'*b');hold on;plot(targetpos(2,2),targetpos(1,2),'*r');hold off;
+% set(h,'Ydir','reverse');xlim([-50 10]);ylim([800 1200])
+% title('Ground Truth');ylabel('Range');xlabel('Cross-Range');
+
+% Ground truth plot (plotting all targets regardless of number) 
+
+figure(1)
+h = axes;
+
+plot(targetpos(2,:), targetpos(1,:), '*')
+
+set(h,'Ydir','reverse')
+
+xlim([-50 10])
+ylim([800 1200])   
+
+title('Ground Truth')
+ylabel('Range')
+xlabel('Cross-Range')
 
 % Signal simulation using ray tracing
 
@@ -147,9 +163,9 @@ for ii = 1:numpulses
     end
 end
 
-figure
-plot(rangeHistory)
-title('Raytrace range history')
+% figure
+% plot(rangeHistory)
+% title('Raytrace range history')
 
 kc = (2*pi*fc)/c;
  
@@ -158,6 +174,7 @@ rxsig=rxsig.*exp(-1i.*2*(kc)*sin(deg2rad(squintangle))*repmat(speed*eta1,1,trunc
 
 % Visualization 
 
+figure(2)
 imagesc(real(rxsig));title('SAR Raw Data')
 xlabel('Cross-Range Samples')
 ylabel('Range Samples')
@@ -169,7 +186,7 @@ matchingCoeff = getMatchedFilter(waveform);
 [cdata, rnggrid] = pulseCompression(rxsig, matchingCoeff);
 
 
-figure;
+figure (3);
 imagesc(real(cdata));
 title('SAR Range Compressed Data ');
 xlabel('Cross-Range Samples');
@@ -178,41 +195,60 @@ ylabel('Range Samples');
 % Azimuth compression
 rma_processed = helperSquintRangeMigration(cdata,fastTime,fc,fs,prf,speed,numpulses,c,Rc,squintangle);
 
-% Final image 
+% Final image (Plotting whole area so we don't exclude any targets)
 
-figure(2);
-imagesc(abs(rma_processed(2300:3600,1100:1400).'));
-title('SAR Data focused using Range Migration algorithm ') 
-xlabel('Cross-Range Samples') 
+figure(4)
+imagesc(abs(rma_processed).')
+title('Full SAR Image')
+xlabel('Cross-Range Samples')
 ylabel('Range Samples')
 
 
 %% Azimuth compression helper function 
 
 function azcompresseddata = helperSquintRangeMigration(sigData,fastTime,fc,fs,prf,speed,numPulses,c,Rc,squintangle)
+
+% Creating RF frequency grid for sampled signal 
 frequencyRange = linspace(fc-fs/2,fc+fs/2,length(fastTime));
+
+% Range spacial frequency axis 
 krange = 2*(2*pi*frequencyRange)/c;
+
+% Azimuth spacial frequency axis 
 kaz = 2*pi*linspace(-prf/2,prf/2,numPulses)./speed;
+
+% Carrier spacial frequency 
 kc = 2*pi*fc/3e8;
 kazimuth = kaz.';
+
+% Doppler center shift 
 kus=2*(kc)*sin(deg2rad(squintangle));
+
+% SAR geometry equation
 kx = krange.^2-(kazimuth+kus).^2;
 
+% Converting squint angle to rad
 thetaRc = deg2rad(squintangle);
 kx = sqrt(kx.*(kx > 0));
 
+% Phase correction 
 kFinal = exp(1i*(kx.*cos(thetaRc)+(kazimuth).*sin(thetaRc)).*Rc);
 kfin = kx.*cos(thetaRc)+(kazimuth+kus).*sin(thetaRc);
 
+% Convert to 2D frequency domain (2D FFT) 
 sdata =fftshift(fft(fftshift(fft(sigData,[],1),1),[],2),2);
+
+% Applying phase compensation 
 fsmPol = (sdata.').*kFinal;
 
+% Stolt interpolation 
 stoltPol = fsmPol;
 for i = 1:size((fsmPol),1)
     stoltPol(i,:) = interp1(kfin(i,:),fsmPol(i,:),krange(1,:));
 end
 stoltPol(isnan(stoltPol)) = 1e-30;
 
+% 2D IFFT 
 azcompresseddata = ifftshift(ifft2(stoltPol),2);
 
 end

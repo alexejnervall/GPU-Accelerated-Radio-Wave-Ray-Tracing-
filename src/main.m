@@ -41,11 +41,13 @@ z0 = 200;
 radarPlatform  = phased.Platform('InitialPosition', [x0; y0; z0], 'Velocity', [0; v; 0]);
 
 % Azimuth sampling 
+
 slowTime = 1/prf;
 n = T/slowTime +1;                  % Transmitted pulses
 slowTimeVec = linspace(0,T , n)';   % Slow time vector 
 
 % Range sampling
+
 truncRangesamples = ceil((2*Rmax/c)*fs);
 fastTime = (0:1/fs:(truncRangesamples-1)/fs);
 
@@ -61,6 +63,7 @@ targetPos = points';
 targetVel = zeros(size(targetPos));
 
 % Target object applies amplitude scaling and phase shift to reflected signal 
+
 target = phased.RadarTarget('OperatingFrequency', fc, 'MeanRCS', ones(1,size(targetPos,2)));
 pointTargets = phased.Platform('InitialPosition', targetPos,'Velocity',targetVel);
 
@@ -74,6 +77,7 @@ title('Point Cloud of Cube Edges');
 
 
 % Precompute radar trajectory
+
 radarPosHist = zeros(3, n);
 
 radarPlatformTemp = phased.Platform( ...
@@ -93,6 +97,7 @@ grid on
 axis equal
 
 % Targets in 3D 
+
 scatter3(targetPos(2,:), targetPos(1,:), targetPos(3,:), 50, 'filled', 'MarkerFaceColor','r');
 
 plot3(radarPosHist(2,:), radarPosHist(1,:), radarPosHist(3,:), 'b', 'LineWidth', 2)
@@ -219,6 +224,7 @@ matchingCoeff = getMatchedFilter(waveform);
 [cdata, rnggrid] = pulseCompression(rxSig, matchingCoeff);
 
 % Range compressed data
+
 figure (3);
 imagesc(real(cdata));
 title('SAR Range Compressed Data ');
@@ -230,11 +236,13 @@ colormap('gray')
 %% %% ----------- IMAGE FORMATION ----------- %% %%
 
 % Azimuth compression
+
 rmaProcessed = RMA(cdata, fastTime, fc, fs, prf, v, n, c, Rc, squintAngle);
 
 sarImage = abs(rmaProcessed);
 
 % Final image, compressed in range & azimuth
+
 figure(4)
 imagesc(sarImage.')
 title('Full SAR Image')

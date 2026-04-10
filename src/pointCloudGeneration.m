@@ -1,75 +1,118 @@
 %% POINT CLOUD GENERATION
 
 function points = pointCloudGeneration(x0, y0, z0, mapTarget, cubeTarget)
-    
     points = [];
 
     if mapTarget
         scene = uavScenario(ReferenceLocation = [59.402979 17.956008 0]);
-        
+    
         xLim = [-100 100];
         yLim = [-100 100];
-        
-        addMesh(scene,"buildings",{"map2.osm",xLim,yLim,"auto"},[0.6 0.6 0.6]); 
-       
-        
-        spacing = 5;   % controls density on surfaces
-        
+    
+        addMesh(scene, "buildings", ...
+            {"map2.osm", xLim, yLim, "auto"}, [0.6 0.6 0.6]);
+    
+        spacing = 5;   % edge sampling resolution
         radarPos = [x0, y0, z0];
-        
+    
         for k = 1:numel(scene.Meshes)
-        
+    
             verts = scene.Meshes{k}.Vertices;
             faces = scene.Meshes{k}.Faces;
-        
+    
+            edgeSet = [];
+            faceNormals = zeros(size(faces,1),3);
+            faceCenters = zeros(size(faces,1),3);
+    
             for f = 1:size(faces,1)
-        
+    
                 v1 = verts(faces(f,1),:);
                 v2 = verts(faces(f,2),:);
                 v3 = verts(faces(f,3),:);
-        
-                % --- Compute face normal ---
-                normal = cross(v2 - v1, v3 - v1);
-                if norm(normal) == 0
+    
+                n = cross(v2 - v1, v3 - v1);
+                if norm(n) == 0
                     continue;
                 end
-                normal = normal / norm(normal);
-        
-                % --- Face center ---
-                center = (v1 + v2 + v3)/3;
-        
-                % --- Vector toward radar ---
-                r = radarPos - center;
-        
-                % --- Keep ALL faces facing radar (any angle) ---
-                if dot(normal, r) <= 0
-                    continue; % backface → skip
+    
+                n = n / norm(n);
+    
+                faceNormals(f,:) = n;
+                faceCenters(f,:) = (v1 + v2 + v3) / 3;
+    
+                % collect triangle edges
+                edgeSet = [edgeSet;
+                           faces(f,1) faces(f,2);
+                           faces(f,2) faces(f,3);
+                           faces(f,3) faces(f,1)];
+            end
+    
+            edgeSet = sort(edgeSet,2);
+            edgeSet = unique(edgeSet,'rows');
+    
+            % Keep edges belonging to faces that face radar
+    
+            visibleEdges = [];
+    
+            for e = 1:size(edgeSet,1)
+    
+                vA = verts(edgeSet(e,1),:);
+                vB = verts(edgeSet(e,2),:);
+    
+                mid = (vA + vB) / 2;
+    
+                % vector to radar
+                r = radarPos - mid;
+    
+                % find closest face (approx association)
+                [~, idx] = min(vecnorm(faceCenters - mid,2,2));
+    
+                if idx == 0 || all(faceNormals(idx,:) == 0)
+                    continue;
                 end
-        
-                % --- Sample triangle surface ---
-                % Estimate number of samples based on triangle size
-                area = 0.5 * norm(cross(v2 - v1, v3 - v1));
-                npts = max(3, ceil(area / (spacing^2)));
-        
-                for i = 1:npts
-                    % Random barycentric sampling (uniform over triangle)
-                    a = rand;
-                    b = rand;
-        
-                    if a + b > 1
-                        a = 1 - a;
-                        b = 1 - b;
-                    end
-        
-                    p = v1 + a*(v2 - v1) + b*(v3 - v1);
+    
+                n = faceNormals(idx,:);
+    
+                % backface culling (keep radar-facing geometry)
+                if dot(n, r) > 0
+                    visibleEdges = [visibleEdges; edgeSet(e,:)];
+                end
+            end
+    
+            visibleEdges = unique(visibleEdges,'rows');
+    
+            for e = 1:size(visibleEdges,1)
+    
+                v1 = verts(visibleEdges(e,1),:);
+                v2 = verts(visibleEdges(e,2),:);
+    
+                L = norm(v2 - v1);
+                npts = max(2, ceil(L / spacing));
+    
+                for i = 0:npts
+                    t = i / npts;
+                    p = (1 - t)*v1 + t*v2;
                     points = [points; p];
+                end
+            end
+    
+            % Add vertices of visible edges multiple times (strong scatterers)
+            if ~isempty(visibleEdges)
+                cornerVerts = unique(visibleEdges(:));
+    
+                for i = 1:length(cornerVerts)
+                    v = verts(cornerVerts(i),:);
+    
+                    % repeat to increase RCS-like weighting
+                    for rep = 1:3
+                        points = [points; v];
+                    end
                 end
             end
         end
     end
     
-    % Remove duplicates
-    points = unique(points,'rows');
+    points = unique(round(points,3),'rows');
     
     if cubeTarget
          spacing = 8;   % controls point density along edges

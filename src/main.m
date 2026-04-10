@@ -54,8 +54,8 @@ fastTime = (0:1/fs:(truncRangesamples-1)/fs);
 
 %% %% ----------- TARGET DEFINITION ----------- %% %%
 
-mapTarget = false;
-cubeTarget = true;
+mapTarget = true;
+cubeTarget = false;
 
 points = pointCloudGeneration(x0, y0, z0, mapTarget, cubeTarget);
 
@@ -67,16 +67,8 @@ targetVel = zeros(size(targetPos));
 target = phased.RadarTarget('OperatingFrequency', fc, 'MeanRCS', ones(1,size(targetPos,2)));
 pointTargets = phased.Platform('InitialPosition', targetPos,'Velocity',targetVel);
 
+%% %% ----------- GEOMETRY CALCULATIONS ----------- %% %%
 
-%% %% ----------- GROUND TRUTH VISUALIZATION ----------- %% %%
-
-scatter3(targetPos(1,:), targetPos(2,:), targetPos(3,:), 20, 'filled');
-axis equal;
-xlabel('X'); ylabel('Y'); zlabel('Z');
-title('Point Cloud of Cube Edges');
-
-
-% Precompute radar trajectory
 
 radarPosHist = zeros(3, n);
 
@@ -90,41 +82,6 @@ for ii = 1:n
 end
 
 
-figure
-h = axes;
-hold on
-grid on
-axis equal
-
-% Targets in 3D 
-
-scatter3(targetPos(2,:), targetPos(1,:), targetPos(3,:), 50, 'filled', 'MarkerFaceColor','r');
-
-plot3(radarPosHist(2,:), radarPosHist(1,:), radarPosHist(3,:), 'b', 'LineWidth', 2)
-
-margin = 10;  
-x_min = min(targetPos(2,:)) - margin;
-x_max = max(targetPos(2,:)) + margin;
-y_min = min(targetPos(1,:)) - margin;
-y_max = max(targetPos(1,:)) + margin;
-z_min = min(targetPos(3,:)) - margin;
-z_max = max(targetPos(3,:)) + margin;
-
-xlim([x_min, x_max])
-ylim([y_min, y_max])
-zlim([z_min, z_max])
-
-xlabel('Cross-Range (y)')
-ylabel('Range (x)')
-zlabel('Height (z)')
-title('3D Ground Truth')
-set(h,'YDir','reverse')
-
-view(45,30)  
-
-%% %% ----------- GEOMETRY CALCULATIONS ----------- %% %%
-
-
 sceneCenter = mean(targetPos, 2);
 lookVec = sceneCenter - radarPosHist;
 lookVecNorm = lookVec ./ vecnorm(lookVec);
@@ -133,6 +90,59 @@ xc = mean(targetPos(1, :));
 yc = mean(targetPos(2, :));
 AoA = atand(z0/xc);
 squintAngle = 0;
+
+%% %% ----------- GROUND TRUTH VISUALIZATION ----------- %% %%
+
+figure(1);
+clf;
+
+scatter3(targetPos(1,:), targetPos(2,:), targetPos(3,:), ...
+    50, 'r', 'filled');
+
+grid on;
+axis equal;
+
+xlabel('X');
+ylabel('Y');
+zlabel('Z');
+title('Point Targets Only');
+
+view(45,30);
+
+
+figure(2);
+clf;
+hold on;
+grid on;
+axis equal;
+
+% Targets
+scatter3(targetPos(1,:), targetPos(2,:), targetPos(3,:), ...
+    50, 'r', 'filled');
+
+% Radar trajectory
+plot3(radarPosHist(1,:), radarPosHist(2,:), radarPosHist(3,:), ...
+    'b', 'LineWidth', 2);
+
+% Look direction
+step = max(1, round(size(radarPosHist,2)/30));
+
+quiver3( ...
+    radarPosHist(1,1:step:end), ...
+    radarPosHist(2,1:step:end), ...
+    radarPosHist(3,1:step:end), ...
+    lookVec(1,1:step:end), ...
+    lookVec(2,1:step:end), ...
+    lookVec(3,1:step:end), ...
+    5, 'k');
+
+% Labels
+xlabel('X');
+ylabel('Y');
+zlabel('Z');
+title('Targets + Radar Trajectory + Look Direction');
+
+view(45,30);
 
 %% %% ----------- SAR SIGNAL SIMULATION USING RAY TRACING ----------- %% %%
 

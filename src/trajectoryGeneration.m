@@ -17,6 +17,9 @@ function [radarPosDisturbed, trajError] = trajectoryGeneration(radarPosNom, sx, 
         end
     end 
 
+    maxError = max(abs(trajError(:)));
+    fprintf('Maximum Trajectory Error: %f\n', maxError);
+
     radarPosDisturbed = radarPosNom + trajError;
 
 end 

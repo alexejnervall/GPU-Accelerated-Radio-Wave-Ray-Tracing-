@@ -12,12 +12,11 @@ dA = 1;                             % [m]
 bw = c/(2*dR);                      % bandwidth [Hz]
 
 prf = 1500;                         % [Hz]
-aperture = 0.673;                   % [m^2]
+aperture = 1;                       % [m^2]
 
 tpd = 3*10^-6;                      % Pulse duration [s]
 fs = 300*10^6;                      % Sampling frequency [Hz]
 lambda = c/fc;                      % Wavelength [m]
-
 
 waveform = phased.LinearFMWaveform('SampleRate',fs, 'PulseWidth', tpd, 'PRF', prf,...
     'SweepBandwidth', bw);
@@ -28,7 +27,6 @@ v = 50;
 Rmax = 700; 
 L0syn = (lambda*Rmax)/(2*dA);
 T0 = ceil(L0syn/v);                           
-
 
 T = 1;
 Lsyn = T*v;
@@ -51,7 +49,6 @@ slowTimeVec = linspace(0,T , n)';   % Slow time vector
 truncRangesamples = ceil((2*Rmax/c)*fs);
 fastTime = (0:1/fs:(truncRangesamples-1)/fs);
 
-
 %% %% ----------- TARGET DEFINITION ----------- %% %%
 
 mapTarget = false;
@@ -69,7 +66,6 @@ pointTargets = phased.Platform('InitialPosition', targetPos,'Velocity',targetVel
 
 %% %% ----------- GEOMETRY CALCULATIONS ----------- %% %%
 
-
 radarPosHist = zeros(3, n);
 
 radarPlatformTemp = phased.Platform( ...
@@ -80,7 +76,6 @@ for ii = 1:n
     [pos, ~] = radarPlatformTemp(slowTime);
     radarPosHist(:,ii) = pos;
 end
-
 
 sceneCenter = mean(targetPos, 2);
 lookVec = sceneCenter - radarPosHist;
@@ -108,7 +103,6 @@ zlabel('Z');
 title('Point Targets Only');
 
 view(45,30);
-
 
 figure(2);
 clf;
@@ -150,7 +144,7 @@ view(45,30);
 
 sx = 0.01;
 sz = 0.0; 
-disturbances = true;
+disturbances = false;
 
 radarPosNom = zeros(3, n);
 
@@ -260,13 +254,6 @@ xlabel('Cross-Range Samples')
 ylabel('Range Samples')
 colormap('gray')
 
-%% %% ----------- IMAGE ANALYSIS ----------- %% %%
-
-rmsContrast = computeRMSContrast(sarImage)
-
-entropy = entropy(sarImage)
-
-
 %% %% ----------- DISTURBANCE ERROR PLOTS ----------- %% %%
 
 figure(5)
@@ -283,5 +270,13 @@ xlabel('Pulse Number')
 ylabel('Error [m]')             
 legend('Altitude Error')     
 
-%% ----------- DISTURBANCE TO IMAGE QUALITY PLOTS ----------- %%
+%% ----------- IMAGE ANALYSIS ----------- %%
+img = sarImage;
+
+img = img - min(img(:));
+img = img / max(img(:));
+
+imageEntropy = entropy(img)
+
+rmsContrast = computeRMSContrast(img)
 

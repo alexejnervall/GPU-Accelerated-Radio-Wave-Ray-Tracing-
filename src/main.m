@@ -254,7 +254,7 @@ xlabel('Cross-Range Samples')
 ylabel('Range Samples')
 colormap('gray')
 
-%% %% ----------- DISTURBANCE ERROR PLOTS ----------- %% %%
+%% %% ----------- TRAJECTORY ERROR PLOTS ----------- %% %%
 
 figure(5)
 plot(trajError(1, :))

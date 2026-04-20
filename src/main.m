@@ -11,7 +11,7 @@ dA = 1;                             % [m]
 
 bw = c/(2*dR);                      % bandwidth [Hz]
 
-prf = 1500;                         % [Hz]
+prf = 1000;                         % [Hz]
 aperture = 1;                       % [m^2]
 
 tpd = 3*10^-6;                      % Pulse duration [s]

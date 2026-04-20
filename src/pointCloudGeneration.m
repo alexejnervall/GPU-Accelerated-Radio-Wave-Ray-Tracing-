@@ -13,7 +13,7 @@ function points = pointCloudGeneration(x0, y0, z0, mapTarget, cubeTarget)
         addMesh(scene, "buildings", ...
             {"map5.osm", xLim, yLim, "auto"}, [0.6 0.6 0.6]);
     
-        spacing = 7;   % edge sampling resolution
+        spacing = 2;   % edge sampling resolution
         radarPos = [x0, y0, z0];
         points = [];
 

@@ -1,5 +1,5 @@
-function points = extractVisibleEdges(mesh, radarPos, spacing)
-
+function points = extractVisibleEdges(mesh, ~, spacing)
+    
     verts = mesh.Vertices;
     faces = mesh.Faces;
 
@@ -77,29 +77,7 @@ function points = extractVisibleEdges(mesh, radarPos, spacing)
             continue;
         end
 
-        vA = verts(vertsIdx(1),:);
-        vB = verts(vertsIdx(2),:);
-        mid = (vA + vB) / 2;
-
-        r = radarPos - mid;
-
-        isVisible = false;
-
-        for f = faceIdx
-            n = faceNormals(f,:);
-            if norm(n) == 0
-                continue;
-            end
-
-            if dot(n, r) > 0
-                isVisible = true;
-                break;
-            end
-        end
-
-        if isVisible
-            visibleEdges = [visibleEdges; vertsIdx];
-        end
+        visibleEdges = [visibleEdges; vertsIdx];
     end
 
     visibleEdges = unique(visibleEdges,'rows');

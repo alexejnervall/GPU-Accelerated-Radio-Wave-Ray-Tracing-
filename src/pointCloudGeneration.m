@@ -4,15 +4,16 @@ function points = pointCloudGeneration(x0, y0, z0, mapTarget, cubeTarget)
     points = [];
 
     if mapTarget
-        scene = uavScenario(ReferenceLocation = [59.402979 17.956008 0]);
-    
+        %scene = uavScenario(ReferenceLocation = [59.4154325 17.96368750]); % Map2
+        scene = uavScenario(ReferenceLocation = [59.4158035 17.9638495 0]); % Map5 
+
         xLim = [-100 100];
         yLim = [-100 100];
     
         addMesh(scene, "buildings", ...
-            {"map2.osm", xLim, yLim, "auto"}, [0.6 0.6 0.6]);
+            {"map5.osm", xLim, yLim, "auto"}, [0.6 0.6 0.6]);
     
-        spacing = 5;   % edge sampling resolution
+        spacing = 7;   % edge sampling resolution
         radarPos = [x0, y0, z0];
         points = [];
 
@@ -23,6 +24,18 @@ function points = pointCloudGeneration(x0, y0, z0, mapTarget, cubeTarget)
     end
     
     points = unique(round(points,3),'rows');
+    
+    % Rotate building 
+    theta = deg2rad(70);
+    
+    R = [cos(theta)  sin(theta);
+        -sin(theta)  cos(theta)];
+    
+    xy = points(:,1:2)';        
+    xy_rot = R * xy;            
+    
+    points(:,1:2) = xy_rot';    
+    
     
     if cubeTarget
          spacing = 8;   

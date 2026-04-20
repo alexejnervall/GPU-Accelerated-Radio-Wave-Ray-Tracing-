@@ -28,13 +28,13 @@ Rmax = 700;
 L0syn = (lambda*Rmax)/(2*dA);
 T0 = ceil(L0syn/v);                           
 
-T = 1;
+T = 3;
 Lsyn = T*v;
 prfMin = (2*v*Lsyn)/(lambda*Rmax);
 
 x0 = -120;
 y0 = -(Lsyn/2);
-z0 = 200;
+z0 = 100;
 
 radarPlatform  = phased.Platform('InitialPosition', [x0; y0; z0], 'Velocity', [0; v; 0]);
 
@@ -42,7 +42,6 @@ radarPlatform  = phased.Platform('InitialPosition', [x0; y0; z0], 'Velocity', [0
 
 slowTime = 1/prf;
 n = T/slowTime +1;                  % Transmitted pulses
-slowTimeVec = linspace(0,T , n)';   % Slow time vector 
 
 % Range sampling
 
@@ -51,8 +50,8 @@ fastTime = (0:1/fs:(truncRangesamples-1)/fs);
 
 %% %% ----------- TARGET DEFINITION ----------- %% %%
 
-mapTarget = false;
-cubeTarget = true;
+mapTarget = true;
+cubeTarget = false;
 
 points = pointCloudGeneration(x0, y0, z0, mapTarget, cubeTarget);
 
@@ -142,7 +141,7 @@ view(45,30);
 
 % Disturbances 
 
-sx = 0.01;
+sx = 0.0005;
 sz = 0.0; 
 disturbances = false;
 
@@ -215,7 +214,7 @@ end
 
 % Visualization of raw SAR data
 
-figure(2)
+figure(3)
 imagesc(real(rxSig));title('SAR Raw Data')
 xlabel('Cross-Range Samples')
 ylabel('Range Samples')
@@ -229,7 +228,7 @@ matchingCoeff = getMatchedFilter(waveform);
 
 % Range compressed data
 
-figure (3);
+figure (4);
 imagesc(real(cdata));
 title('SAR Range Compressed Data ');
 xlabel('Cross-Range Samples');
@@ -247,23 +246,24 @@ sarImage = abs(rmaProcessed);
 
 % Final image, compressed in range & azimuth
 
-figure(4)
-imagesc(sarImage.')
-title('Full SAR Image')
-xlabel('Cross-Range Samples')
-ylabel('Range Samples')
-colormap('gray')
+figure(5) 
+imagesc(-sarImage.') 
+title('Full SAR Image') 
+xlabel('Cross-Range Samples') 
+ylabel('Range Samples') 
+colormap('gray') 
+set(gca, 'YDir', 'normal')
 
 %% %% ----------- TRAJECTORY ERROR PLOTS ----------- %% %%
 
-figure(5)
+figure(6)
 plot(trajError(1, :))
 title('Crossrange Disturbance')
 xlabel('Pulse Number')         
 ylabel('Error [m]')             
 legend('Crossrange Error')      
 
-figure(6)
+figure(7)
 plot(trajError(3, :))
 title('Altitude Disturbance')
 xlabel('Pulse Number')         
@@ -271,6 +271,7 @@ ylabel('Error [m]')
 legend('Altitude Error')     
 
 %% ----------- IMAGE ANALYSIS ----------- %%
+
 img = sarImage;
 
 img = img - min(img(:));
